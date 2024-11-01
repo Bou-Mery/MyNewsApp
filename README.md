@@ -19,8 +19,8 @@ Une application de recherche d'actualités permettant aux utilisateurs de consul
 
 1. **Cloner le dépôt :**
    ```bash
-   https://github.com/Bou-Mery/MyNewsApp.git
-   cd NewsApp
+   git clone  https://github.com/Bou-Mery/MyNewsApp.git
+   
    ```
 
 2. **Ouvrir le projet :** Importez le projet dans Android Studio.
@@ -59,8 +59,7 @@ Une application de recherche d'actualités permettant aux utilisateurs de consul
 ## 🧩 Dépendances
 Ajoutez les dépendances suivantes à votre fichier build.gradle :
 
-gradle
-
+```
 dependencies {
     
     // Architectural Components
@@ -94,6 +93,7 @@ dependencies {
     implementation ("com.github.bumptech.glide:glide:4.12.0")
     ksp ("com.github.bumptech.glide:compiler:4.12.0")
     }
+```
 N'oubliez pas de synchroniser votre projet après avoir ajouté ces dépendances.
 
 ## 📜 Auteur

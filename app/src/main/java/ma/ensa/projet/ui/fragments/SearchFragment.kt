@@ -28,60 +28,70 @@ import ma.ensa.projet.util.Constants
 import ma.ensa.projet.util.Constants.Companion.SEARCH_NEWS_TIME_DALAY
 import ma.ensa.projet.util.Resource
 
-
 class SearchFragment : Fragment(R.layout.fragment_search) {
 
-   lateinit var newsViewModel: NewsViewModel
-   lateinit var newsAdapter: NewsAdapter
-    lateinit var retryButton: Button
-    lateinit var errorText : TextView
-    lateinit var itemSearchError : CardView
-    lateinit var binding: FragmentSearchBinding
+    private lateinit var newsViewModel: NewsViewModel
+    private lateinit var newsAdapter: NewsAdapter
+    private lateinit var retryButton: Button
+    private lateinit var errorText: TextView
+    private lateinit var itemSearchError: CardView
+    private lateinit var binding: FragmentSearchBinding
+
+    private var isError = false
+    private var isLoading = false
+    private var isLastPage = false
+    private var isScrolling = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentSearchBinding.bind(view)
 
         itemSearchError = view.findViewById(R.id.itemSearchError)
-
         val inflater = requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val view : View = inflater.inflate(R.layout.item_error , null)
 
-        retryButton = view.findViewById(R.id.retryButton)
-        errorText = view.findViewById(R.id.errorText)
+        // Inflate error view and bind buttons and texts.
+        val errorView: View = inflater.inflate(R.layout.item_error, null)
+        retryButton = errorView.findViewById(R.id.retryButton)
+        errorText = errorView.findViewById(R.id.errorText)
 
         newsViewModel = (activity as NewsActivity).newsViewModel
         setupSearchRecycler()
 
-        newsAdapter.setOnclickListenner {
+        newsAdapter.setOnclickListenner { article ->
             val bundle = Bundle().apply {
-                putSerializable("article" , it)
+                putSerializable("article", article)
             }
-
-            findNavController().navigate(R.id.action_searchFragment_to_articlesFragment,bundle)
-
+            findNavController().navigate(R.id.action_searchFragment_to_articlesFragment, bundle)
         }
 
-        var job : Job? = null
-        binding.searchEdit.addTextChangedListener(){editable ->
+        var job: Job? = null
+
+        // Listen for text changes in the search EditText.
+        binding.searchEdit.addTextChangedListener { editable ->
             job?.cancel()
             job = MainScope().launch {
                 delay(SEARCH_NEWS_TIME_DALAY)
-                editable?.let{
-                    if(editable.toString().isNotEmpty()){
+                editable?.let {
+                    if (editable.toString().isNotEmpty()) {
+                        // Clear previous results before searching.
+                        newsAdapter.differ.submitList(emptyList())
                         newsViewModel.searchNews(editable.toString())
+                    } else {
+                        // Clear results if search field is empty.
+                        newsAdapter.differ.submitList(emptyList())
                     }
                 }
             }
-
         }
 
+        // Observe search results from the ViewModel.
         newsViewModel.searchNews.observe(viewLifecycleOwner) { response ->
             when (response) {
                 is Resource.Success<*> -> {
                     hideProgressBar()
                     hideErrorMessage()
                     response.data?.let { newsResponse ->
+                        // Submit new list to adapter.
                         newsAdapter.differ.submitList(newsResponse.articles.toList())
                         val totalPages = newsResponse.totalResults / Constants.QUERY_PAGE_SIZE
                         isLastPage = newsViewModel.searchNewsPage == totalPages
@@ -94,105 +104,93 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
 
                 is Resource.Error<*> -> {
                     hideProgressBar()
-                    response.message?.let {message ->
-                        Toast.makeText(activity , "Sorry error : $message" , Toast.LENGTH_LONG ).show()
+                    response.message?.let { message ->
+                        Toast.makeText(activity, "Sorry error: $message", Toast.LENGTH_LONG).show()
                         showErrorMessage(message)
                     }
-
                 }
 
                 is Resource.Loading<*> -> {
                     showProgressBar()
-
                 }
             }
         }
 
-        retryButton.setOnClickListener{
-            if(binding.searchEdit.text.toString().isNotEmpty()){
+        retryButton.setOnClickListener {
+            if (binding.searchEdit.text.toString().isNotEmpty()) {
                 newsViewModel.searchNews(binding.searchEdit.text.toString())
             } else {
                 hideErrorMessage()
             }
         }
-
     }
 
-
-    var isError = false
-    var isLoading = false
-    var isLastPage = false
-    var isSrolling = false
-
-    private fun hideProgressBar(){
+    private fun hideProgressBar() {
         binding.paginationProgressBar.visibility = View.INVISIBLE
         isLoading = false
     }
 
-    private fun showProgressBar(){
+    private fun showProgressBar() {
         binding.paginationProgressBar.visibility = View.VISIBLE
         isLoading = true
     }
 
-    private fun hideErrorMessage(){
+    private fun hideErrorMessage() {
         itemSearchError.visibility = View.INVISIBLE
-        isError= false
+        isError = false
     }
 
-    private fun showErrorMessage(message : String){
+    private fun showErrorMessage(message: String) {
         itemSearchError.visibility = View.VISIBLE
         errorText.text = message
-        isError= true
+        isError = true
     }
 
-
-    val scrollListener = object  : RecyclerView.OnScrollListener() {
+    private val scrollListener = object : RecyclerView.OnScrollListener() {
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
             super.onScrolled(recyclerView, dx, dy)
 
             val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+
             val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
             val visibleItemCount = layoutManager.childCount
             val totalItemCount = layoutManager.itemCount
 
             val isNoErrors = !isError
             val isNotLoadingAndNotLastPage = !isLoading && !isLastPage
+
             val isAtLastItem = firstVisibleItemPosition + visibleItemCount >= totalItemCount
-            val isNotAtBeginnig = firstVisibleItemPosition >= 0
+
+            val isNotAtBeginning = firstVisibleItemPosition >= 0
+
             val isTotalMoreThanVisible = totalItemCount >= Constants.QUERY_PAGE_SIZE
+
             val shouldPaginate =
-                isNoErrors && isNotLoadingAndNotLastPage && isAtLastItem && isTotalMoreThanVisible && isNotAtBeginnig && isSrolling
+                isNoErrors && isNotLoadingAndNotLastPage && isAtLastItem &&
+                        isTotalMoreThanVisible && isNotAtBeginning && isScrolling
 
             if (shouldPaginate) {
                 newsViewModel.searchNews(binding.searchEdit.text.toString())
-                isSrolling = false
+                isScrolling = false // Reset scrolling state after pagination.
             }
-
-
         }
 
         override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
             super.onScrollStateChanged(recyclerView, newState)
 
             if (newState == AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) {
-                isSrolling = true
+                isScrolling = true // Set scrolling state when user scrolls.
             }
         }
     }
 
+    private fun setupSearchRecycler() {
+        newsAdapter = NewsAdapter()
 
-
-    private fun setupSearchRecycler(){
-        newsAdapter =  NewsAdapter()
         binding.recyclerSearch.apply {
             adapter = newsAdapter
             layoutManager = LinearLayoutManager(activity)
-            addOnScrollListener(this@SearchFragment.scrollListener)
+            addOnScrollListener(scrollListener)
         }
     }
-
-
-
-
-
 }

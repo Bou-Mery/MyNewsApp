@@ -56,7 +56,7 @@ Une application de recherche d'actualités permettant aux utilisateurs de consul
 - **Glide** : Chargement des images.
 - **RecyclerView** : Affichage des articles et gestion des favoris.
 
-🧩 Dépendances
+## 🧩 Dépendances
 Ajoutez les dépendances suivantes à votre fichier build.gradle :
 
 gradle

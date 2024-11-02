@@ -96,6 +96,12 @@ dependencies {
 ```
 N'oubliez pas de synchroniser votre projet après avoir ajouté ces dépendances.
 
+## 📹 Vidéo Démonstrative de l'Application
+
+Dans cette vidéo, vous découvrirez les fonctionnalités principales de notre application et comment l'utiliser efficacement. 
+![viseoBoukhraisMeryem](https://github.com/user-attachments/assets/eea4217b-26d6-4ec4-9da5-6569d7bbb4ac)
+
+
 ## 📜 Auteur
 
 BOUKHRAIS Meryem
